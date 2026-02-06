@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useId } from "react";
 import { Container } from "./tooltip.styles";
 
 type ToolTipProps = {
@@ -7,14 +8,14 @@ type ToolTipProps = {
   name: string;
 };
 
-// Each tooltip will receive a children
-// It will be an icon (toolbar items)
-// with its name (tooltip content)
 function ToolTip({ direction, children, name }: ToolTipProps) {
+  const id = useId();
+  const className = direction === "right" ? "right" : "left";
+
   return (
-    <Container className={direction === "right" ? "right" : "left"}>
+    <Container className={className} aria-describedby={id}>
       {children}
-      <span className={direction === "right" ? "right" : "left"}>{name}</span>
+      <span id={id} role="tooltip" className={className}>{name}</span>
     </Container>
   );
 }

@@ -21,6 +21,20 @@
     }
   },
   "Tools": {
+    "Crop": {
+      "Apply": "Apply",
+      "Cancel": "Cancel",
+      "Position": "position"
+    },
+    "Text": {
+      "Placeholder": "Type your text",
+      "Apply": "Apply",
+      "Cancel": "Cancel",
+      "Done": "Done",
+      "Delete": "Delete",
+      "Size": "Size",
+      "Color": "Color"
+    },
     "Shortcuts": {
       "Name": "Shortcuts",
       "Items": {

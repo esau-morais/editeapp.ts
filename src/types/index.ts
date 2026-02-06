@@ -1,5 +1,23 @@
 import type { ReactNode } from "react";
 
+export type EditorMode = "crop" | "text" | null;
+
+export type TextLayer = {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  color: string;
+};
+
+export type EditorContextType = {
+  editorMode: EditorMode;
+  setEditorMode: (mode: EditorMode) => void;
+  hasImage: boolean;
+  setHasImage: (has: boolean) => void;
+};
+
 export type Theme = {
   title: "light" | "dark";
   colors: {

@@ -21,6 +21,20 @@
     }
   },
   "Tools": {
+    "Crop": {
+      "Apply": "Aplicar",
+      "Cancel": "Cancelar",
+      "Position": "posição"
+    },
+    "Text": {
+      "Placeholder": "Digite seu texto",
+      "Apply": "Aplicar",
+      "Cancel": "Cancelar",
+      "Done": "Pronto",
+      "Delete": "Excluir",
+      "Size": "Tamanho",
+      "Color": "Cor"
+    },
     "Shortcuts": {
       "Name": "Atalhos",
       "Items": {

@@ -85,6 +85,12 @@ export const Box = styled.form`
   }
 `;
 
+export const CanvasContainer = styled.div`
+  position: relative;
+  display: inline-block;
+  overflow: visible;
+`;
+
 export const ImageBox = styled.div`
   // Spacement
   margin-bottom: var(--margin2x);
@@ -103,22 +109,23 @@ export const ImageBox = styled.div`
   }
 
   // Delete button
-  button,
-  a {
-    position: absolute
+  > button,
+  > a {
+    position: absolute;
+    z-index: 11;
   }
-  button {
+  > button {
     // Position → Top-right
     top: 0;
     right: 0;
   }
-  a {
+  > a {
     // Position → Bottom-right
     bottom: 0;
     right: 0;
   }
-  button > svg,
-  a > svg {
+  > button > svg,
+  > a > svg {
     // Spacement
     padding: 0.25rem;
 
@@ -128,15 +135,15 @@ export const ImageBox = styled.div`
                 0 1px 2px 0 rgba(0,0,0,0.06);
     border-radius: 100%;
   }
-  button > svg > path,
-  a > svg > path {
+  > button > svg > path,
+  > a > svg > path {
     fill: ${({ theme }) => theme.colors.primaryForeground};
     transition: fill 0.2s ease-in-out 0s;
   }
-  button:hover > svg > path {
+  > button:hover > svg > path {
     fill: var(--primary-red);
   }
-  a:hover > svg > path {
+  > a:hover > svg > path {
     fill: var(--secondary-blue)
   }
 `;

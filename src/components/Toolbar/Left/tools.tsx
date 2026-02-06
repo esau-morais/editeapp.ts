@@ -1,7 +1,7 @@
 import type { ChangeEvent, CSSProperties, KeyboardEvent } from "react";
 import { useContext, useEffect, useState } from "react";
 // Providers
-import { ToolbarContext } from "../../../App";
+import { EditorContext, ToolbarContext } from "../../../App";
 // Icons
 import Crop from "../../../assets/Crop.svg?react";
 import Filter from "../../../assets/Filter.svg?react";
@@ -40,6 +40,9 @@ function ToolsList({ toggleTheme }: ToolsListProps) {
   const context = useContext(ToolbarContext);
   if (!context) throw new Error("ToolsList must be used within ToolbarContext");
   const { setOpen } = context;
+  const editorContext = useContext(EditorContext);
+  if (!editorContext) throw new Error("ToolsList must be used within EditorContext");
+  const { editorMode, setEditorMode, hasImage } = editorContext;
   const [openShortcuts, setOpenShortcuts] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   // Manage the tool state (active)
@@ -56,33 +59,74 @@ function ToolsList({ toggleTheme }: ToolsListProps) {
     i18next.changeLanguage(option.target.value);
   };
 
+  const isInputFocused = () => {
+    const tag = document.activeElement?.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+  };
+
+  const isModalOpen = () => openShortcuts || openSettings;
+
   // Tools properties
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const tools = [
     {
       key: 0,
-      upcoming: true,
       name: "Left.Items.One",
-      image: <Crop tabIndex={0} />,
-      onActive: () => {},
+      image: <Crop />,
+      requiresImage: true,
+      onActive: () => {
+        if (!hasImage) return;
+        setEditorMode("crop");
+        setOpen(false);
+      },
+      onKeyDown: (e: KeyboardEvent) => {
+        if (isInputFocused() || isModalOpen() || !hasImage) return;
+        if (e.code === "KeyC") {
+          setEditorMode("crop");
+          setActiveTool(0);
+          setOpen(false);
+        } else if (e.code === "Escape") {
+          setEditorMode(null);
+        }
+      },
     },
     {
       key: 1,
-      upcoming: true,
       name: "Left.Items.Two",
-      image: <Text tabIndex={0} />,
-      onActive: () => {},
+      image: <Text />,
+      requiresImage: true,
+      onActive: () => {
+        if (!hasImage) return;
+        setEditorMode("text");
+        setOpen(false);
+      },
+      onKeyDown: (e: KeyboardEvent) => {
+        if (isInputFocused() || isModalOpen() || !hasImage) return;
+        if (e.code === "KeyT") {
+          setEditorMode("text");
+          setActiveTool(1);
+          setOpen(false);
+        } else if (e.code === "Escape") {
+          setEditorMode(null);
+        }
+      },
     },
     {
       key: 2,
       name: "Left.Items.Three",
-      image: <Filter tabIndex={0} />,
+      image: <Filter />,
+      requiresImage: true,
       onActive: () => {
+        if (!hasImage) return;
         setOpen(true);
+        setEditorMode(null);
       },
       onKeyDown: (e: KeyboardEvent) => {
+        if (isInputFocused() || isModalOpen() || !hasImage) return;
         if (e.code === "KeyF") {
           setOpen(true);
+          setActiveTool(2);
+          setEditorMode(null);
         } else if (e.code === "Escape") {
           setOpen(false);
         }
@@ -91,34 +135,30 @@ function ToolsList({ toggleTheme }: ToolsListProps) {
     {
       key: 3,
       name: "Left.Items.Four",
-      image: <Shortcuts tabIndex={0} />,
+      image: <Shortcuts />,
       onActive: () => {
         setOpenShortcuts(true);
-      },
-      onKeyDown: (e: KeyboardEvent) => {
-        if (e.code === "Escape") {
-          setOpenShortcuts(false);
-          handleShortcutsOnBlur();
-        }
       },
     },
     {
       key: 4,
       name: "Left.Items.Five",
-      image: <Settings tabIndex={0} />,
+      image: <Settings />,
       onActive: () => {
         setOpenSettings(true);
       },
       onKeyDown: (e: KeyboardEvent) => {
+        if (isInputFocused() || isModalOpen()) return;
         if (e.code === "KeyS") {
           setOpenSettings(true);
-        } else if (e.code === "Escape") {
-          setOpenSettings(false);
-          handleSettingsOnBlur();
         }
       },
     },
   ];
+  useEffect(() => {
+    if (editorMode === null) setActiveTool(undefined);
+  }, [editorMode]);
+
   // Defines the active tool after the click
   const handleActiveTool = (active: number) => setActiveTool(active);
   // Active tool and toolbar at right lose the focus when the modal is closed
@@ -156,12 +196,12 @@ function ToolsList({ toggleTheme }: ToolsListProps) {
         <ToolItem
           key={tool.key}
           active={activeIndex === activeTool}
+          disabled={tool.requiresImage && !hasImage}
           onActive={() => {
             handleActiveTool(activeIndex);
             tool.onActive();
           }}
           name={t(`${tool.name}`)}
-          upcoming={tool.upcoming}
         >
           {tool.image}
         </ToolItem>
@@ -175,12 +215,20 @@ function ToolsList({ toggleTheme }: ToolsListProps) {
       >
         <section>
           <MainText style={shortcutsStyles}>
+            {t("Tools.Shortcuts.Items.One")}
+            <kbd>c</kbd>
+          </MainText>
+          <MainText style={shortcutsStyles}>
+            {t("Tools.Shortcuts.Items.Two")}
+            <kbd>t</kbd>
+          </MainText>
+          <MainText style={shortcutsStyles}>
             {t("Tools.Shortcuts.Items.Three")}
-            <code>f</code>
+            <kbd>f</kbd>
           </MainText>
           <MainText style={shortcutsStyles}>
             {t("Tools.Shortcuts.Items.Four")}
-            <code>s</code>
+            <kbd>s</kbd>
           </MainText>
         </section>
       </Modal>

@@ -67,26 +67,37 @@ const Global = createGlobalStyle`
   }
 
   // Shortcuts
-  code {
+  code,
+  kbd {
     // Spacement
     padding: 5px;
 
     border-radius: 5px;
 
     // Font
-    font-family: 'Fira Code';
+    font-family: 'Fira Code', monospace;
+    font-size: 0.75em;
 
     // Colors
     background-color: var(--primary-background);
     color: var(--primary-foreground)
   }
 
+  kbd {
+    opacity: 0.7;
+    margin-left: 0.25rem;
+  }
+
   // Accessbility
-  button:focus,
   label:focus,
-  select:focus,
-  svg:focus {
+  select:focus {
     outline: 1px dashed var(--primary-blue)
+  }
+  button:focus:not(:focus-visible) {
+    outline: none;
+  }
+  button:focus-visible {
+    outline: 1px dashed var(--primary-blue);
   }
 
   // Spinner animations

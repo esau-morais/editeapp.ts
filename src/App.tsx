@@ -13,18 +13,21 @@ import { ThemeProvider } from "styled-components";
 import Global from "./styles/global";
 import dark from "./styles/themes/dark";
 import light from "./styles/themes/light";
-import type { ToolbarContextType, ToolsContextType, SliderContextType } from "./types";
+import type { ToolbarContextType, ToolsContextType, SliderContextType, EditorContextType, EditorMode } from "./types";
 
 // Providers
 export const ToolbarContext = createContext<ToolbarContextType | null>(null);
 export const ToolsContext = createContext<ToolsContextType | null>(null);
 export const SliderContext = createContext<SliderContextType | null>(null);
+export const EditorContext = createContext<EditorContextType | null>(null);
 
 function App() {
   // Toolbar & slider states
   const [open, setOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<number | undefined>();
   const [show, setShow] = useState(false);
+  const [editorMode, setEditorMode] = useState<EditorMode>(null);
+  const [hasImage, setHasImage] = useState(false);
   // Current theme state (light/dark)
   const [theme, setTheme] = useThemeSwitcher("theme", dark);
 
@@ -42,9 +45,11 @@ function App() {
         <ToolbarContext.Provider value={{ open, setOpen }}>
           <ToolsContext.Provider value={{ activeTool, setActiveTool }}>
             <SliderContext.Provider value={{ show, setShow }}>
-              <ToolbarLeft toggleTheme={toggleTheme} />
-              <FileUploader />
-              <ToolbarRight />
+              <EditorContext.Provider value={{ editorMode, setEditorMode, hasImage, setHasImage }}>
+                <ToolbarLeft toggleTheme={toggleTheme} />
+                <FileUploader />
+                <ToolbarRight />
+              </EditorContext.Provider>
             </SliderContext.Provider>
           </ToolsContext.Provider>
         </ToolbarContext.Provider>

@@ -20,7 +20,6 @@ type Tool = {
   name: string;
   image: ReactNode;
   onActive: () => void;
-  upcoming?: boolean;
 };
 
 function ToolsList() {
@@ -39,43 +38,43 @@ function ToolsList() {
     {
       key: 0,
       name: "Right.Items.One",
-      image: <Brightness tabIndex={0} />,
+      image: <Brightness />,
       onActive: () => setShow(true),
     },
     {
       key: 1,
       name: "Right.Items.Two",
-      image: <Contrast tabIndex={0} />,
+      image: <Contrast />,
       onActive: () => setShow(true),
     },
     {
       key: 2,
       name: "Right.Items.Three",
-      image: <Saturation tabIndex={0} />,
+      image: <Saturation />,
       onActive: () => setShow(true),
     },
     {
       key: 3,
       name: "Right.Items.Four",
-      image: <Grayscale tabIndex={0} />,
+      image: <Grayscale />,
       onActive: () => setShow(true),
     },
     {
       key: 4,
       name: "Right.Items.Five",
-      image: <Sepia tabIndex={0} />,
+      image: <Sepia />,
       onActive: () => setShow(true),
     },
     {
       key: 5,
       name: "Right.Items.Six",
-      image: <Invert tabIndex={0} />,
+      image: <Invert />,
       onActive: () => setShow(true),
     },
     {
       key: 6,
       name: "Right.Items.Seven",
-      image: <Hue tabIndex={0} />,
+      image: <Hue />,
       onActive: () => setShow(true),
     },
   ];
@@ -93,7 +92,6 @@ function ToolsList() {
             tool.onActive();
           }}
           name={t(`${tool.name}`)}
-          upcoming={tool.upcoming}
         >
           {tool.image}
         </ToolItem>

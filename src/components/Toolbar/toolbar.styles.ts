@@ -39,8 +39,7 @@ export const RightContainer = styled(LeftContainer)`
     padding: var(--margin4x) 0;
   }
 
-  // Remove unnecessary spacements
-  ul > li {
+  ul > button {
     &:nth-child(3),
     &:nth-child(5) {
       margin-bottom: 2rem
@@ -52,13 +51,23 @@ export const RightContainer = styled(LeftContainer)`
   }
 `;
 
-export const ItemContent = styled.li`
-  // If still upcoming, not allow
-  &.upcoming {
-    cursor: not-allowed
+export const ItemContent = styled.button`
+  &.upcoming,
+  &.disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+
+    svg {
+      pointer-events: none;
+    }
   }
-  // Otherwise...
+
   cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
 
   // Spacement
   margin-bottom: var(--margin2x);
@@ -75,7 +84,7 @@ export const ItemContent = styled.li`
   // Size
   width: 100%;
 
-  // Alignment & position¹
+  // Alignment & position
   text-align: center;
   position: relative;
 
@@ -84,21 +93,29 @@ export const ItemContent = styled.li`
     fill: ${({ theme }) => theme.colors.secondaryForeground};
     transition: fill .2s ease;
   }
-  svg:hover > path {
+  &:not(.disabled):not(.upcoming):hover svg > path {
     fill: ${({ theme }) => theme.colors.primaryForeground};
   }
 
-  // Active items → Add a border to the left
-  div.activeItem {
-    // Position¹
-    position: absolute;
+  &:focus-visible {
+    outline: none;
+  }
+  &:focus-visible svg {
+    outline: 1px dashed var(--primary-blue);
+    border-radius: 4px;
+  }
 
-    // Size
+  &:focus-visible span {
+    opacity: 1;
+    transition: opacity .15s ease 0s;
+  }
+
+  // Active items → border to the left
+  div.activeItem {
+    position: absolute;
     width: 0.25rem;
     height: 2.5rem;
     border-radius: 0px 2.5px 2.5px 0px;
-
-    // Colors
     background-color: var(--secondary-blue)
   }
 `;

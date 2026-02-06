@@ -3,7 +3,8 @@ import styled from "styled-components";
 export const Container = styled.div`
   span {
     // Initial state
-    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
 
     // Spacement
     margin-left: 2.25rem;
@@ -22,18 +23,17 @@ export const Container = styled.div`
     // Position:
     position: absolute;
     z-index: 1;
-    &.right { //right after the item¹
-      transform: translate3d(-0.625rem, 0, 0);
+    &.right {
+      transform: translate3d(0, 0, 0);
     }
     &.left {
-      // (Remove) default spacement
       margin-left: 0;
       margin-right: 2.25rem;
-      transform: translate3d(-8rem, 0, 0)
+      transform: translate3d(calc(-100% - 4rem), 0, 0)
     }
 
-    // Animation: Out → Back
-    transition: all .4s cubic-bezier(0.18, 0.89, 0.32, 1.28)
+    // Animation: fade out with delay so adjacent hovers stay visible
+    transition: opacity .15s ease .1s
   }
 
   span::after {
@@ -52,25 +52,19 @@ export const Container = styled.div`
   }
   span.right::after {
     top: 50%;
-    right: 100%; // Go to the right
+    right: 100%;
   }
   span.left::after {
     top: 50%;
-    left: 100%; // Go to the left
+    left: 100%;
     transform: rotateZ(180deg);
   }
 
-  svg:hover ~ span {
-    // Hover (final) state
-    visibility: visible;
+  &:hover > span {
+    opacity: 1;
 
-    // Position
-    &.right { // right after the item¹
-      transform: translate3d(0, 0, 0)
-    }
-    &.left {
-      transform: translate3d(calc(-100% - 4rem), 0, 0)
-    }
+    // Instant show, no delay
+    transition: opacity .15s ease 0s
   }
 `;
 

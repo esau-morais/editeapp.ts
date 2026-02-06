@@ -1,7 +1,8 @@
-import type { ChangeEvent } from "react";
-import { useContext, useEffect, useRef, useState } from "react";
+import type { ChangeEvent, MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 // Providers
-import { ToolsContext } from "../../App";
+import { EditorContext, ToolsContext } from "../../App";
+import type { TextLayer } from "../../types";
 import Delete from "../../assets/Delete.svg?react";
 import Download from "../../assets/Download.svg?react";
 import Drag from "../../assets/Drag.svg?react";
@@ -13,11 +14,14 @@ import useProgressiveImg from "../../hooks/useProgressiveImg";
 // i18n
 import { useTranslation } from "react-i18next";
 // Components (children)
+import CropOverlay from "../CropOverlay";
 import Slider from "../Slider";
+import TextOverlay from "../TextOverlay";
 // CSS filters
 import DEFAULT_OPTIONS from "../Toolbar/Right/options.json";
+import { TextBox } from "../TextOverlay/textOverlay.styles";
 // Components (styles)
-import { Box, ImageBox, UploadState } from "./fileUploader.styles";
+import { Box, CanvasContainer, ImageBox, UploadState } from "./fileUploader.styles";
 
 type FilterOption = {
   property: string;
@@ -44,8 +48,21 @@ function FileUploader() {
   if (!toolsContext)
     throw new Error("FileUploader must be used within ToolsContext");
   const { activeTool } = toolsContext;
+  const editorContext = useContext(EditorContext);
+  if (!editorContext)
+    throw new Error("FileUploader must be used within EditorContext");
+  const { editorMode, setEditorMode, setHasImage } = editorContext;
   const [options, setOptions] = useState<FilterOption[]>(DEFAULT_OPTIONS);
   const selectedFilter = options[activeTool ?? 0];
+  const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
+  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
+  const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
+  const [lastCropRect, setLastCropRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const pendingCropRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    setHasImage(!!imageToDraw);
+  }, [imageToDraw, setHasImage]);
 
   const handleDragIn = (e: DragEvent) => {
     e.preventDefault();
@@ -82,17 +99,41 @@ function FileUploader() {
     }
   };
 
-  useEffect(() => {
+  const drawCanvas = useCallback(() => {
     if (!imageToDraw || !canvasRef.current) return;
 
+    const displayImage = editorMode === "crop" && originalImage ? originalImage : imageToDraw;
     const canvas = canvasRef.current;
-    canvas.width = imageToDraw.width;
-    canvas.height = imageToDraw.height;
+    canvas.width = displayImage.width;
+    canvas.height = displayImage.height;
     const ctx = canvas.getContext("2d");
-    if (ctx && handleImageStyling) ctx.filter = handleImageStyling();
-    if (ctx) ctx.drawImage(imageToDraw, 0, 0);
+    if (!ctx) return;
+    ctx.filter = handleImageStyling();
+    ctx.drawImage(displayImage, 0, 0);
+
     setCanvasDataUrl(canvas.toDataURL());
-  }, [imageToDraw, options]);
+  }, [imageToDraw, options, editorMode, originalImage]);
+
+  useEffect(() => {
+    drawCanvas();
+    const canvas = canvasRef.current;
+    const crop = pendingCropRef.current;
+    if (canvas && crop) {
+      const newW = canvas.clientWidth;
+      const newH = canvas.clientHeight;
+      if (newW > 0 && newH > 0) {
+        const scaleX = newW / crop.w;
+        const scaleY = newH / crop.h;
+        setTextLayers(prev => prev.map(l => ({
+          ...l,
+          x: (l.x - crop.x) * scaleX,
+          y: (l.y - crop.y) * scaleY,
+          fontSize: l.fontSize * scaleX,
+        })));
+        pendingCropRef.current = null;
+      }
+    }
+  }, [drawCanvas]);
 
   useEffect(() => {
     const dragzoneEl = dndRef.current;
@@ -146,6 +187,56 @@ function FileUploader() {
     return filters.join(" ");
   };
 
+  const layerDragRef = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const didDragRef = useRef(false);
+
+  useEffect(() => {
+    const onMouseMove = (e: globalThis.MouseEvent) => {
+      if (!layerDragRef.current) return;
+      const { id, startX, startY, origX, origY } = layerDragRef.current;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDragRef.current = true;
+      setTextLayers(prev => prev.map(l =>
+        l.id === id ? { ...l, x: origX + dx, y: origY + dy } : l
+      ));
+    };
+    const onMouseUp = () => { layerDragRef.current = null; };
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+
+  const onLayerMouseDown = (e: ReactMouseEvent, layer: TextLayer) => {
+    e.preventDefault();
+    e.stopPropagation();
+    didDragRef.current = false;
+    layerDragRef.current = { id: layer.id, startX: e.clientX, startY: e.clientY, origX: layer.x, origY: layer.y };
+  };
+
+  const getFlattenedDataUrl = useCallback(() => {
+    if (!imageToDraw || !canvasRef.current || textLayers.length === 0) return canvasDataUrl;
+    const canvas = canvasRef.current;
+    const offscreen = document.createElement("canvas");
+    offscreen.width = canvas.width;
+    offscreen.height = canvas.height;
+    const ctx = offscreen.getContext("2d")!;
+    ctx.drawImage(canvas, 0, 0);
+    const scaleX = canvas.width / canvas.clientWidth;
+    const scaleY = canvas.height / canvas.clientHeight;
+    for (const layer of textLayers) {
+      const scaledSize = layer.fontSize * scaleX;
+      ctx.font = `${scaledSize}px Montserrat`;
+      ctx.fillStyle = layer.color;
+      ctx.textBaseline = "top";
+      ctx.fillText(layer.text, layer.x * scaleX, layer.y * scaleY);
+    }
+    return offscreen.toDataURL();
+  }, [imageToDraw, canvasDataUrl, textLayers]);
+
   return (
     <Box className={isDragging ? "box__dragging" : ""} ref={dndRef}>
       {!uploadedImageUrl ? (
@@ -176,24 +267,90 @@ function FileUploader() {
         <>
           {!isDragging && (
             <ImageBox>
-              <canvas
-                ref={canvasRef}
-                style={{
-                  filter: blur ? "blur(1rem)" : "none",
-                }}
-              ></canvas>
+              <CanvasContainer>
+                <canvas
+                  ref={canvasRef}
+                  style={{
+                    filter: blur ? "blur(1rem)" : "none",
+                  }}
+                ></canvas>
+                {editorMode === "crop" && imageToDraw && (
+                  <CropOverlay
+                    canvasRef={canvasRef}
+                    imageToDraw={originalImage || imageToDraw}
+                    initialRect={lastCropRect}
+                    setImageToDraw={(img: HTMLImageElement) => {
+                      if (!originalImage) setOriginalImage(imageToDraw);
+                      setImageToDraw(img);
+                    }}
+                    onAppliedRect={(cropRect) => {
+                      setLastCropRect(cropRect);
+                      pendingCropRef.current = cropRect;
+                    }}
+                    onDone={() => setEditorMode(null)}
+                  />
+                )}
+                {editorMode === "text" && imageToDraw && (
+                  <TextOverlay
+                    canvasRef={canvasRef}
+                    editingLayer={textLayers.find(l => l.id === editingLayerId) || null}
+                    onSave={(layer: TextLayer) => {
+                      setTextLayers(prev => {
+                        const exists = prev.find(l => l.id === layer.id);
+                        if (exists) return prev.map(l => l.id === layer.id ? layer : l);
+                        return [...prev, layer];
+                      });
+                      setEditingLayerId(null);
+                    }}
+                    onDeleteLayer={(id: string) => {
+                      setTextLayers(prev => prev.filter(l => l.id !== id));
+                      setEditingLayerId(null);
+                    }}
+                    onDone={() => {
+                      setEditingLayerId(null);
+                      setEditorMode(null);
+                    }}
+                  />
+                )}
+                {editorMode !== "text" && textLayers.map(layer => (
+                  <TextBox
+                    key={layer.id}
+                    style={{ left: layer.x, top: layer.y, zIndex: 10, cursor: "move" }}
+                    onMouseDown={e => onLayerMouseDown(e, layer)}
+                    onClick={() => {
+                      if (didDragRef.current) return;
+                      setEditingLayerId(layer.id);
+                      setEditorMode("text");
+                    }}
+                  >
+                    <span style={{
+                      fontSize: layer.fontSize,
+                      color: layer.color,
+                      fontFamily: "Montserrat, sans-serif",
+                      userSelect: "none",
+                      pointerEvents: "none",
+                    }}>
+                      {layer.text}
+                    </span>
+                  </TextBox>
+                ))}
+              </CanvasContainer>
               <button
                 onClick={() => {
                   setUploadedImageUrl("");
                   setImageToDraw(null);
                   setCanvasDataUrl("");
+                  setTextLayers([]);
+                  setOriginalImage(null);
+                  setEditingLayerId(null);
+                  setLastCropRect(null);
                 }}
               >
                 <Delete />
               </button>
               <a
                 draggable="false"
-                href={canvasDataUrl || uploadedImageUrl}
+                href={getFlattenedDataUrl() || uploadedImageUrl}
                 download={uploadedImageName}
               >
                 <Download />
